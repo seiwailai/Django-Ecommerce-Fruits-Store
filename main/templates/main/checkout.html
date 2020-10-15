@@ -1,0 +1,130 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="content-container mrl-5">
+        <div class="left-container">
+            <div class="checkout-page-container shipping-info">
+                <form class="shipping-checkout" method="POST" action="">
+                    {% csrf_token %}
+                    <h2>Shipping Information</h2>
+                    <div class="personal-info">
+                        <h3>Personal Information</h3>
+                        <input required type="text" placeholder="Name" name="name">
+                        <input required type="email" placeholder="Email" name="email">
+                    </div>
+                    <div class="address-info">
+                        <h3>Address</h3>
+                        <input required class="address" type="text" placeholder="Street Address 1" name="address1">
+                        <input class="address" type="text" placeholder="Street Address 2" name="address2">
+                        <input required class="input-width-30p" type="text" placeholder="City" name="city">
+                        <input required class="input-width-30p" type="text" placeholder="State" name="state">
+                        <input required class="input-width-30p" type="number" placeholder="Zip Code" name="zipcode">
+                    </div>
+                    <div class="confirmation-btn">
+                        <button id="green-btn" class="shipping-info-confirmation" type="submit">Continue</button>
+                    </div>
+                </form>
+            </div>
+            <br>
+            <div class="checkout-page-container payment-info hidden">
+                <h2>Payment Options</h2>
+                <tr>
+                    <td><button id="green-btn" class="pay-btn">Pay</button></td>
+                </tr>
+            </div>
+        </div>
+        <div class="checkout-page-container order-summary">
+            <h2>Order Summary</h2>
+            <table>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="checkout-product-img">
+                                <a href="#">
+                                    <img src="{{ item.product.imageURL }}" alt="">
+                                </a>
+                            </div>
+                        </td>
+                        <td>{{ item.product.name }}</td>
+                        <td><span>RM </span><span>{{ item.product.price }}</span></td>
+                        <td><span>x</span><span>{{ item.quantity }}</span></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <div class="order-summary-footer">
+                <div class="order-summary-details">
+                    <h3 class="inline">Total Items: </h3>
+                    <span>{{ order.get_cart_quantity }}</span>
+                    <br>
+                    <h3 class="inline">Total Amount: </h3>
+                    <span>RM </span><span>{{ order.get_cart_total|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const total = '{{order.get_cart_total|floatformat:2}}'
+
+        const form = document.querySelector('.shipping-checkout')
+
+        form.addEventListener('submit', function(e){
+            e.preventDefault()
+            console.log('Form submitted')
+            for (i=0; i<form.elements.length; i++){
+                form.elements[i].readOnly = true
+            }
+            document.querySelector('.confirmation-btn').innerHTML = ''
+            document.querySelector('.payment-info').classList.remove('hidden')
+        })
+
+        document.querySelector('.pay-btn').addEventListener('click', submitFormData)
+
+        function submitFormData(){
+            console.log('Pay button clicked')
+
+            const userFormData = {
+                'name': null,
+                'email': null,
+                'total': total,
+            }
+            const shippingInfo = {
+                'address1': null,
+                'address2': null,
+                'city': null,
+                'state': null,
+                'zipcode': null,
+            }
+
+            shippingInfo.address1 = form.address1.value
+            shippingInfo.address2 = form.address2.value
+            shippingInfo.city = form.city.value
+            shippingInfo.state = form.state.value
+            shippingInfo.zipcode = form.zipcode.value
+            
+            if (user=='AnonymousUser'){
+                userFormData.name = form.name.value
+                userFormData.email = form.email.value
+            }
+            const url = '/process_order/'
+            fetch(url, {
+                method:'POST',
+                headers:{
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({'form': userFormData, 'shipping': shippingInfo})
+            })
+            .then((response) => response.json())
+            
+            .then((data) => {
+                console.log('Success', data)
+                alert('Transaction completed')
+
+                cart = {}
+                document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+                window.location.href = "{% url 'main-home' %}"
+            })
+        }
+    </script>
+{% endblock content %}

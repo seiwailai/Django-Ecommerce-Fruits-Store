@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static '/main/main.css' %}">
+    <script src="https://use.fontawesome.com/releases/v5.14.0/js/all.js"></script>
+    <script>
+        const user = '{{request.user}}'
+
+        function getToken(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getToken('csrftoken');
+
+        function getCookie(name){
+            const cookieArr = document.cookie.split(";");
+
+            for (let i=0; i<cookieArr.length; i++){
+                const cookiePair = cookieArr[i].split("=");
+
+                if (name == cookiePair[0].trim()) {
+                    return decodeURIComponent(cookiePair[1]);
+                }
+            }
+
+            return null;
+        }
+
+        var cart = JSON.parse(getCookie('cart'))
+        if (cart == undefined){
+            cart = {}
+            console.log('Cart was created')
+            document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+        }
+
+        console.log('Cart: ', cart)
+    </script>
+    {% if title %}
+        <title>{{ title }} | Ecommerce</title>
+    {% else %}
+        <title>Ecommerce</title>
+    {% endif %}
+</head>
+<body>
+    <header class="navbar">
+        <a class="logo" href="{% url 'main-home' %}">E-Commerce</a>
+        <form method="GET" action="." class="search-bar inline">
+            <input class="search-txt inline" type="search" placeholder="Search for fruits here" name="search_text">
+            <button type="submit" class="search-btn inline"><i class="fas fa-search"></i></button>  
+        </form>
+        <ul id="navbar-right" class="inline">
+            <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-home' %}">Home</a></li>
+            <!-- <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-about' %}">About Us</a></li> -->
+            {% if user.is_authenticated %}
+                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-logout' %}">Log Out</a></li>
+            {% else %}
+                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-login' %}">Log In</a></li>
+                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-signup' %}">Sign Up</a></li>
+            {% endif %}
+            <li class="pd1 inline cartlogo">
+                <a id="cart" class="navbar-font" href="{% url 'main-cart' %}">
+                    <img class="cart-image" src="{% static '/images/shopping-cart.png' %}" alt="Shopping Cart">
+                    <div class="cart-number inline">{{ cartItems }}</div>
+                </a>
+            </li>
+        </ul>
+    </header>
+    {% block content %}{% endblock %}
+    <script type="text/javascript" src="{% static 'main/main.js' %}"></script>
+</body>
+</html>

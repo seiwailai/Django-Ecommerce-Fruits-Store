@@ -1,0 +1,22 @@
+{% extends "main/base.html" %}
+{% block content %}
+    <div class="content-container">
+        <div class="signup-page-container">
+            <h2>Log In</h2>
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input class="input" type="text" placeholder="Username" name="username">
+                <br>
+                <input class="input" type="password" placeholder="Password" name="password">
+                <br>
+                <button id="green-btn" type="submit" name="Create User">Log In</button>
+            </form>
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="alert success">{{message}}</p>
+                {% endfor %}
+            {% endif %}
+            <div class="login-note">Don't have account? <a href="{% url 'main-signup' %}">Sign Up</a></div>
+        </div>
+    </div>
+{% endblock content %}

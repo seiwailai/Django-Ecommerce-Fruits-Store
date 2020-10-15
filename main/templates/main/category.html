@@ -1,0 +1,93 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="carousel-bg">
+        <button class="carousel-btn" id="previous-btn"><i class="fas fa-chevron-left"></i></button>
+        <div id="carousel-container">
+            <div class="carousel-slide">
+                {% for carousel in carousels %}
+                    {% if forloop.last %}
+                        <img id="lastClone" src="{{ carousel.imageURL }}" alt="">
+                    {% endif %}
+                {% endfor %}
+                {% for carousel in carousels %}
+                    <img src="{{ carousel.imageURL }}" alt="">
+                {% endfor %}
+                {% with carousels|first as carousel %}
+                    <img id="firstClone" src="{{ carousel.imageURL }}" alt="">
+                {% endwith %}
+            </div>
+        </div> 
+        <button class="carousel-btn inline" id="next-btn"><i class="fas fa-chevron-right"></i></button> 
+    </div>
+    <div class="content-container">
+        <div class="filter-box">
+            <div class="filter-first-box">
+                <h2 class="filter-title">Categories</h2>
+                <ul class="filter-list">
+                    {% for category in categories %}
+                        <li><a href="{% url 'main-category' category.category %}">{{ category.category }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="filter-remaining-box">
+                <h2 class="filter-title">Price Range</h2>
+                <div class="min-max-tag">
+                    <div class="min">Min</div>
+                    <div class="max">Max</div>
+                </div>
+                <input id="min" class="inline" value="0" type=number min="0" max="50">
+                <hr>
+                <input id="max" class="inline" value="50" type=number min="0" max="50">
+                <button class="filter-price-apply">Apply</button>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="sort-bar">
+                <h3>Sort by</h3>
+                <form method="GET">
+                    <select class="sort-options-bar" name="sort_options" id="sortBy" onchange="this.form.submit();">
+                        <option value="price">Price: Low to High</option>
+                        <option value="-price">Price: High to Low</option>
+                        <option value="name">Alphabetically: A to Z</option>
+                        <option value="-name">Alphabetically: Z to A</option>
+                    </select>
+                </form>
+                <form method="GET" action="." class="sort-bar-search-bar">
+                    <input class="search-txt inline" type="search" placeholder="Search for fruits here" name="search_text">
+                    <button type="submit" class="search-btn inline"><i class="fas fa-search"></i></button>  
+                </form>
+            </div>
+            <div class="products-grid-container">
+                {% for product in products.object_list %}
+                <div class="product-box">
+                    <a href="#product-details">
+                        <img src="{{ product.imageURL }}" alt="">
+                        <h2 class="product-name">{{ product.name }}</h2>
+                        <p class="product-description">{{ product.description }}</p>
+                        <h2 class="price">RM <span>{{ product.price|floatformat:2 }}</span></h2>
+                    </a>
+                    <button data-product="{{ product.id }}" data-action="add" id="green-btn" class="update-cart">Add to cart</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% if is_paginated %}
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+                    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %}
