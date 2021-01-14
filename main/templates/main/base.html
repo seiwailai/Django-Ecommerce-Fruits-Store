@@ -47,37 +47,294 @@
             document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
         }
 
-        console.log('Cart: ', cart)
+    </script>
+    <script>
+        function addUserItem(productID, action){
+            const url = '/item_updated/'
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    'productID': productID,
+                    'action': action,
+                })
+            })
+            .then((response) => {
+                return response.json()
+            })
+
+            .then((data) =>{
+                document.querySelector('.cart-number').innerHTML = data.cartItems
+            })
+        }
+
+        function addCookieItem(productID, action){
+            if (action == 'add'){
+                if (cart[productID] == undefined){
+                    cart[productID] = {'quantity': 1}
+                }
+                else {
+                    cart[productID]['quantity'] += 1
+                }
+                let cartItems = 0
+                for (item in cart){
+                    cartItems += cart[item]['quantity']
+                }
+                document.querySelector('.cart-number').innerHTML = cartItems
+                document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+            }
+        }
+
+        function addAction(){
+            const productID = this.dataset.product
+
+            if (user === 'AnonymousUser'){
+                    addCookieItem(productID, 'add')
+            }
+            else {
+                    addUserItem(productID, 'add')
+            }
+        }
+
+        function updateCartList(productID, itemQuantity, data){
+            const cartItems = JSON.parse(data.cartItems)
+            document.querySelector('.cart-number').innerHTML = cartItems
+            if (itemQuantity <= 0){
+                document.getElementById(`cartRowItem_${productID}`).remove()
+            }
+            else {
+                const itemTotal = (Math.round(JSON.parse(data.itemTotal) * 100) / 100).toFixed(2)
+                const cartTotal = (Math.round(JSON.parse(data.cartTotal) * 100) / 100).toFixed(2)
+                document.getElementById(`itemTotal_${productID}`).innerHTML = itemTotal
+                document.getElementById(`item_${productID}_quantity`).value = itemQuantity
+                document.getElementById(`cart-total`).innerHTML = cartTotal
+            }
+        }
+
+        function updateCookieItem(productID, action, datavalue){
+            cart[productID]['quantity'] = parseInt(datavalue)
+            if (cart[productID]['quantity'] <= 0){
+                delete cart[productID]
+            }
+            document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+            const url = '/item_updated/'
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    'productID': productID,
+                    'action': action,
+                    'datavalue': datavalue
+                })
+            })
+
+            .then((response) => {
+                return response.json()
+            })
+
+            .then((data) =>{
+                const itemQuantity = JSON.parse(data.itemQuantity)
+                updateCartList(productID, itemQuantity, data)
+            })
+        }
+
+
+        function updateUserOrder(productID, action, datavalue){
+            const url = '/item_updated/'
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    'productID': productID,
+                    'action': action,
+                    'datavalue': datavalue
+                })
+            })
+
+            .then((response) => {
+                return response.json()
+            })
+
+            .then((data) =>{
+                const itemQuantity = JSON.parse(data.itemQuantity)
+                updateCartList(productID, itemQuantity, data)
+            })
+        }
+
+        function updateItemAction (inputField){
+            const productID = inputField.dataset.product
+            const action = inputField.dataset.action
+
+            if (user === 'AnonymousUser'){
+                    updateCookieItem(productID, action, inputField.value)
+            }
+            else {
+                    updateUserOrder(productID, action, inputField.value)
+            }
+        }
+
+        function quantityControl(){
+            const productID = this.dataset.product
+            const action = this.dataset.action
+            const inputField = document.getElementById(`item_${productID}_quantity`)
+
+            if (action==='increment'){
+                inputField.value ++
+            }
+            else if(action==='reduce'){
+                inputField.value --
+            }
+            updateItemAction(inputField)
+        }
+
+        function initCarousel(){
+            const carouselSlide = document.querySelector('.carousel-slide');
+            const carouselContainer = document.getElementById('carousel-container');
+            const carouselImages = document.querySelectorAll('.carousel-slide img');
+            const carouselPreviousButton = document.querySelector('#previous-btn');
+            const carouselNextButton = document.querySelector('#next-btn');
+            let counter = 1;
+
+
+            if (carouselContainer){
+                let size = carouselImages[0].clientWidth;
+                carouselContainer.style.width = `${carouselImages[counter].clientWidth}px`;
+                carouselSlide.style.transform = 'translateX(' + (-size) + 'px)'
+
+                function changeSlide(counter) {
+                    carouselSlide.style.transition = 'transform 0.3s ease-in-out';
+                    resize(counter);
+                    carouselContainer.style.width = `${carouselImages[counter].clientWidth}px`;
+                    carouselSlide.style.transform = 'translateX(' + (-size) + 'px)';
+                }
+
+                function resize(counter) {
+                    size = 0
+                    for (i=0; i<counter; i++) {
+                        size += carouselImages[i].clientWidth
+                    }
+                }
+
+                carouselNextButton.addEventListener('click', ()=>{
+                    if (counter >= carouselImages.length -1 )return;
+                    counter ++;
+                    changeSlide(counter);
+                });
+
+                carouselPreviousButton.addEventListener('click', ()=>{
+                    if (counter <= 0)return;
+                    counter --;
+                    changeSlide(counter);
+                });
+
+                carouselSlide.addEventListener('transitionend', ()=>{
+                    if (carouselImages[counter].id === 'lastClone'){
+                        carouselSlide.style.transition = "none";
+                        counter = carouselImages.length - 2;
+                        resize(counter)
+                        carouselSlide.style.transform = 'translateX(' + (-size) + 'px)';
+                    }
+                    else if(carouselImages[counter].id === 'firstClone'){
+                        carouselSlide.style.transition = "none";
+                        counter = 1;
+                        resize(counter)
+                        carouselSlide.style.transform = 'translateX(' + (-size) + 'px)';
+                    }
+                });
+            }
+        }
+
+        function initCartAdd(){
+            const addCart = document.querySelectorAll('.add-cart');
+
+            for (i=0; i<addCart.length; i++){
+                addCart[i].addEventListener('click', addAction)
+            } 
+        }
+
+
+        function initCartUpdate(){
+            const quantityBtn = document.querySelectorAll(".quantity-btn");
+
+            for (i=0; i<quantityBtn.length; i++){
+                quantityBtn[i].addEventListener('click', quantityControl)
+            }
+        }
+
+        function eleToggle(){
+            target = this.dataset.target
+            targetEle = document.querySelector(`#${target}`)
+            targetEle.classList.toggle("open");
+        }
+
+        function initHamburger(){
+            const hamburger = document.querySelectorAll(".hamburger");
+            const navLinks = document.querySelector(".hamburger-nav-links");
+
+            for (i=0; i<hamburger.length; i++){
+                hamburger[i].addEventListener("click", eleToggle)
+            }
+        }
     </script>
     {% if title %}
-        <title>{{ title }} | Ecommerce</title>
+        <title>{{ title }} | Fruit Store</title>
     {% else %}
-        <title>Ecommerce</title>
+        <title>Fruit Store</title>
     {% endif %}
 </head>
 <body>
     <header class="navbar">
-        <a class="logo" href="{% url 'main-home' %}">E-Commerce</a>
-        <form method="GET" action="." class="search-bar inline">
-            <input class="search-txt inline" type="search" placeholder="Search for fruits here" name="search_text">
+        <a class="logo" href="{% url 'main-home' %}">Fruit Store</a>
+        <form method="GET" action="{% url 'main-home' %}" class="search-bar inline">
+            <input class="search-txt inline" type="search" placeholder="Search" name="q">
             <button type="submit" class="search-btn inline"><i class="fas fa-search"></i></button>  
         </form>
-        <ul id="navbar-right" class="inline">
-            <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-home' %}">Home</a></li>
-            <!-- <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-about' %}">About Us</a></li> -->
-            {% if user.is_authenticated %}
-                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-logout' %}">Log Out</a></li>
-            {% else %}
-                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-login' %}">Log In</a></li>
-                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-signup' %}">Sign Up</a></li>
-            {% endif %}
-            <li class="pd1 inline cartlogo">
+        <div id="nav-right">
+            <ul class="nav-links">
+                <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-home' %}">Home</a></li>
+                <!-- <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-about' %}">About Us</a></li> -->
+                {% if user.is_authenticated %}
+                    <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-logout' %}">Log Out</a></li>
+                {% else %}
+                    <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-login' %}">Log In</a></li>
+                    <li class="pd1 inline"><a class="navbar-font" href="{% url 'main-signup' %}">Sign Up</a></li>
+                {% endif %}
+            </ul>
+            <div class="cartlogo">
                 <a id="cart" class="navbar-font" href="{% url 'main-cart' %}">
                     <img class="cart-image" src="{% static '/images/shopping-cart.png' %}" alt="Shopping Cart">
                     <div class="cart-number inline">{{ cartItems }}</div>
                 </a>
-            </li>
-        </ul>
+            </div>
+            <div class="hamburger-nav">
+                <div class="hamburger" data-target="hamburger-nav-links">
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                </div>
+                <ul id="hamburger-nav-links" class="hamburger-nav-links">
+                    <li><a class="navbar-font" href="{% url 'main-home' %}">Home</a></li>
+                    {% if user.is_authenticated %}
+                        <li><a class="navbar-font" href="{% url 'main-logout' %}">Log Out</a></li>
+                    {% else %}
+                        <li><a class="navbar-font" href="{% url 'main-login' %}">Log In</a></li>
+                        <li><a class="navbar-font" href="{% url 'main-signup' %}">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
     </header>
     {% block content %}{% endblock %}
     <script type="text/javascript" src="{% static 'main/main.js' %}"></script>

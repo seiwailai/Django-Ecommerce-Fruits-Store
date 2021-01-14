@@ -4,6 +4,25 @@ from django.db.models.query import QuerySet
 from django.db.models import Model
 
 
+def getCookieItem(request, productID):
+    try:
+        cart = json.loads(request.COOKIES['cart'])
+        itemQuantity = cart[productID]['quantity']
+        itemTotal = Product.objects.get(id=productID).price * itemQuantity
+        cartTotal = 0
+        cartItems = 0
+        for i in cart:
+            product = Product.objects.get(id=i)
+            cartTotal += cart[i]['quantity'] * product.price
+            cartItems += cart[i]['quantity']
+            print(cart[i]['quantity'])
+        print(cartTotal)
+        return {'itemQuantity': itemQuantity, 'itemTotal': itemTotal, 'cartTotal': cartTotal, 'cartItems': cartItems}
+    except:
+        cart = {}
+        return {'itemQuantity': 0, 'itemTotal': 0, 'cartTotal': 0, 'cartItems': 0}
+
+
 def cookieCart(request):
     try:
         cart = json.loads(request.COOKIES['cart'])
@@ -63,8 +82,6 @@ def cartData(request):
     }
 
 def guestOrder(request, data):
-    print('User is not logged in')
-    print('COOKIES:', request.COOKIES)
     name = data['form']['name']
     email = data['form']['email']
 
@@ -81,16 +98,6 @@ def guestOrder(request, data):
         product = Product.objects.get(id=item['product'].id)
         orderItem = OrderItem.objects.create(product=product, order=order, quantity=item['quantity'])
     return customer, order
-
-
-def searchItem(request, search):
-    if request.method == 'GET':
-        if request.GET.get('search_text') is not None or request.GET.get('search_text') != '':
-            search = request.GET.get('search_text')
-            search_url =  request.get_raw_uri().rpartition('/')[-1]
-            return search, search_url
-    elif request.method == 'POST':
-        return search, None
 
 def serializePageObj(pageObj):
     page_obj = {}

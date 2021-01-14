@@ -3,7 +3,7 @@ from .models import *
 from django.http import JsonResponse
 import json
 import datetime
-from .utils import cookieCart, cartData, guestOrder, searchItem, serializeContext, serializeItems, serializeOrder
+from .utils import cookieCart, cartData, guestOrder, serializeContext, serializeItems, serializeOrder, getCookieItem
 from django.contrib.auth.forms import UserCreationForm
 from .forms import CreateUserForm
 from django.contrib import messages
@@ -20,133 +20,145 @@ from django.views.generic import (
 class Home(ListView):
     model = Product
     template_name = 'main/home.html'
-    paginate_by = 9
-    search = None
     ordering = 'price'
-    content_type = 'application/json'
 
-    def render_to_response(self, context, **response_kwargs):
-        """
-        Return a response, using the `response_class` for this view, with a
-        template rendered with the given context.
+    def get_ordering(self):
+        self.ordering = self.request.GET.get('ordering', self.ordering)
+        return self.ordering
 
-        Pass response_kwargs to the constructor of the response class.
+    def get_queryset(self):
         """
-        return render(self.request, self.template_name, {'context': context})
+        Return the list of items for this view.
+
+        The return value must be an iterable and may be an instance of
+        `QuerySet` in which case `QuerySet` specific behavior will be enabled.
+        """
+        if self.queryset is not None:
+            queryset = self.queryset
+            if isinstance(queryset, QuerySet):
+                queryset = queryset.all()
+        elif self.model is not None:
+            queryset = self.model._default_manager.all()
+        else:
+            raise ImproperlyConfigured(
+                "%(cls)s is missing a QuerySet. Define "
+                "%(cls)s.model, %(cls)s.queryset, or override "
+                "%(cls)s.get_queryset()." % {
+                    'cls': self.__class__.__name__
+                }
+            )
+        
+        query = self.request.GET.get('q', None)
+        if query is not None:
+            queryset = Product.objects.search(queryset, query)
+        ordering = self.get_ordering()
+        if ordering:
+            if isinstance(ordering, str):
+                ordering = (ordering,)
+            queryset = queryset.order_by(*ordering)
+
+        return queryset
 
     def get_context_data(self, *args, **kwargs):
         context = super(Home, self).get_context_data(*args, **kwargs)
         data = cartData(self.request)
-        self.search, searchURL = searchItem(self.request, self.search)
-        if self.search:
-            p = Paginator(Product.objects.filter(name__icontains=self.search).all().order_by(self.ordering), self.paginate_by)
-        else:
-            p = Paginator(Product.objects.all().order_by(self.ordering), self.paginate_by)
         context['title'] = 'Home'
-        context['products'] = p.page(context['page_obj'].number)
+        context['products'] = context['object_list']
         context['categories'] = Categories.objects.all()
         context['cartItems'] = data['cartItems']
         context['carousels'] = CarouselSlider.objects.all()
-        context = serializeContext(context)
-        json_context = json.dumps(context, cls=DjangoJSONEncoder)
-        return json_context
+        context['orderings'] = {'price': 'Price: Low to High', '-price': 'Price: High to Low', 'name': 'Alphabetically: A to Z', '-name': 'Alphabetically: Z to A'}
+        return context
 
 
 class CategoryView(ListView):
     model = Product
-    template_name = 'main/category.html'
+    template_name = 'main/home.html'
     paginate_by = 9
-    search = None
     ordering = 'price'
 
     def get_ordering(self):
-        if self.request.method == 'GET':
-            if self.request.GET.get('sort_options'):
-                self.ordering = self.request.GET.get('sort_options')
+        self.ordering = self.request.GET.get('ordering', self.ordering)
         return self.ordering
+
+    def get_queryset(self):
+        """
+        Return the list of items for this view.
+
+        The return value must be an iterable and may be an instance of
+        `QuerySet` in which case `QuerySet` specific behavior will be enabled.
+        """
+        if self.queryset is not None:
+            queryset = self.queryset
+            if isinstance(queryset, QuerySet):
+                queryset = queryset.all()
+        elif self.model is not None:
+            queryset = self.model._default_manager.all()
+        else:
+            raise ImproperlyConfigured(
+                "%(cls)s is missing a QuerySet. Define "
+                "%(cls)s.model, %(cls)s.queryset, or override "
+                "%(cls)s.get_queryset()." % {
+                    'cls': self.__class__.__name__
+                }
+            )
+        category = self.kwargs.get('category', None)
+        query = self.request.GET.get('q', None)
+        if category is not None:
+            queryset = queryset.filter(categories__category=category)
+        if query is not None:
+            queryset = Product.objects.search(queryset, query)
+        ordering = self.get_ordering()
+        if ordering:
+            if isinstance(ordering, str):
+                ordering = (ordering,)
+            queryset = queryset.order_by(*ordering)
+
+        return queryset
 
     def get_context_data(self, *args, **kwargs):
         context = super(CategoryView, self).get_context_data(*args, **kwargs)
-        category = get_object_or_404(Categories, category=self.kwargs.get('category'))
-        filtered = Product.objects.filter(categories=category).order_by(self.ordering)
-        self.search, searchURL = searchItem(self.request, self.search)
-        if self.search:
-            p = Paginator(filtered.filter(name__icontains=self.search).all().order_by(self.ordering), self.paginate_by)
-        else:
-            p = Paginator(filtered.order_by(self.ordering), self.paginate_by)
         data = cartData(self.request)
-        context['title'] = category.category
-        context['products'] = p.page(context['page_obj'].number)
+        context['title'] = self.kwargs.get('category')
+        context['products'] = context['paginator'].page(context['page_obj'].number)
         context['categories'] = Categories.objects.all()
         context['cartItems'] = data['cartItems']
         context['carousels'] = CarouselSlider.objects.all()
-        context = serializeContext(context)
+        context['orderings'] = {'price': 'Price: Low to High', '-price': 'Price: High to Low', 'name': 'Alphabetically: A to Z', '-name': 'Alphabetically: Z to A'}
         return context
 
-
-# def home(request):
-#     data = cartData(request)
-#     cartItems = data['cartItems']
-#     products = Product.objects.all()
-#     carousels = CarouselSlider.objects.all()
-#     context = {'title': 'Home',
-#     'products': products,
-#     'cartItems': cartItems,
-#     'carousels': carousels
-#     }
-#     return render(request, 'main/home.html', context)
-
 def cart(request):
-    search = None
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    else:
-        data = cartData(request)
-        cartItems = data['cartItems']
-        order = data['order']
-        items = data['items']
+    data = cartData(request)
+    cartItems = data['cartItems']
+    order = data['order']
+    items = data['items']
 
-        context = {
-            'title': 'Cart',
-            'items': items,
-            'order': order,
-            'cartItems': cartItems
-        }
-        return render(request, 'main/cart.html', context)
+    context = {
+        'title': 'Cart',
+        'items': items,
+        'order': order,
+        'cartItems': cartItems
+    }
+    return render(request, 'main/cart.html', context)
 
 def checkout(request):
-    search = None
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    else:
-        data = cartData(request)
-        cartItems = data['cartItems']
-        order = data['order']
-        items = data['items']
-        context = {
-            'title': 'Checkout',
-            'items': items,
-            'order': order,
-            'cartItems': cartItems
-        }
-        return render(request, 'main/checkout.html', context)
+    data = cartData(request)
+    cartItems = data['cartItems']
+    order = data['order']
+    items = data['items']
+    context = {
+        'title': 'Checkout',
+        'items': items,
+        'order': order,
+        'cartItems': cartItems
+    }
+    return render(request, 'main/checkout.html', context)
 
 def about(request):
-    search = None
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    else:
-        return render(request, 'main/about.html', {'title': 'About Us'})
+    return render(request, 'main/about.html', {'title': 'About Us'})
 
 def loginpage(request):
-    search = None
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    elif request.method == 'POST':
+    if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
@@ -164,44 +176,34 @@ def loginpage(request):
     return render(request, 'main/login.html', context)
 
 def logoutUser(request):
-    search = None
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    else:
-        logout(request)
-        return redirect('main-login')
+    logout(request)
+    return redirect('main-login')
 
 def signup(request):
-    search, searchURL = searchItem(request, search)
-    if search:
-        return redirect(reverse('main-home') + searchURL)
-    else:
-        form = CreateUserForm()
+    form = CreateUserForm()
 
-        if request.method == 'POST':
-            form = CreateUserForm (request.POST)
-            if form.is_valid():
-                form.save()
-                user = form.cleaned_data.get('username')
-                messages.success(request, f'Account was created for {user}')
-                return redirect('main-login')
+    if request.method == 'POST':
+        form = CreateUserForm (request.POST)
+        if form.is_valid():
+            form.save()
+            user = form.cleaned_data.get('username')
+            messages.success(request, f'Account was created for {user}')
+            return redirect('main-login')
 
-        data = cartData(request)
-        cartItems = data['cartItems']
-        context = {
-            'title': 'Sign Up',
-            'form': form,
-            'cartItems': cartItems
-            }
-        return render(request, 'main/signup.html', context)
+    data = cartData(request)
+    cartItems = data['cartItems']
+    context = {
+        'title': 'Sign Up',
+        'form': form,
+        'cartItems': cartItems
+        }
+    return render(request, 'main/signup.html', context)
 
 def updateItem(request):
+    data = json.loads(request.body)
+    productID = data['productID']
+    action = data['action']
     if request.user.is_authenticated:
-        data = json.loads(request.body)
-        productID = data['productID']
-        action = data['action']
-
         customer = request.user.customer
         product = Product.objects.get(id=productID)
         order, created = Order.objects.get_or_create(customer=customer, complete=False)
@@ -216,15 +218,21 @@ def updateItem(request):
             orderItem.quantity = int(datavalue)
         
         orderItem.save()
+        orderItem
 
         if orderItem.quantity <= 0:
             orderItem.delete()
-
-    cartdata = cartData(request)
-    cartItems = cartdata['cartItems']
-    order = serializeOrder(cartdata['order'])
-    items = json.dumps(serializeItems(cartdata['items']), cls=DjangoJSONEncoder)
-    return JsonResponse({'result': 'Item was added', 'cartItems': cartItems, 'items': items, 'order': order}, safe=False)
+        cartTotal = order.get_cart_total
+        itemTotal = orderItem.get_total
+        itemQuantity = orderItem.quantity
+        cartItems = order.get_cart_quantity()
+    else:
+        cookieData = getCookieItem(request, productID)
+        cartTotal = cookieData['cartTotal']
+        itemTotal = cookieData['itemTotal']
+        itemQuantity = cookieData['itemQuantity']
+        cartItems = cookieData['cartItems']
+    return JsonResponse({'result': 'Item was added', 'cartTotal': cartTotal, 'itemTotal': itemTotal, 'itemQuantity': itemQuantity, 'cartItems': cartItems}, safe=False)
 
 def processOrder(request):
     transaction_id = int(datetime.datetime.now().timestamp())

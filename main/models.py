@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from PIL import Image
 
 # Create your models here.
 class Customer(models.Model):
@@ -20,42 +19,27 @@ class Categories(models.Model):
         return self.category
 
 
+class ProductManager(models.Manager):
+    def search(self, qs, query=None):
+        qs = qs
+        if query is not None:
+            or_lookup = (models.Q(name__icontains=query) | 
+                         models.Q(description__icontains=query)
+                        )
+            qs = qs.filter(or_lookup).distinct() # distinct() is often necessary with Q lookups
+        return qs
+
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     categories = models.ManyToManyField(Categories, blank=True)
     date_posted = models.DateTimeField(default=timezone.now)
     price = models.DecimalField(max_digits=100, decimal_places=2)
-    image = models.ImageField(default='strawberry.jpg', null=True, blank=True, upload_to='product_images')
+    image = models.ImageField(null=True, blank=True, upload_to='product_images')
+    objects = ProductManager()
 
     def __str__(self):
         return self.name
-    
-    def save(self, *args, **kwargs):
-        super(Product, self).save(*args, **kwargs)
-        if self.image:
-            img = Image.open(self.image)
-            print(self.image.width, self.image.height)
-            scale = img.width/img.height
-            if img.height > img.width:
-                ratio = img.height/200
-                height = img.height/ratio
-                width = img.width/ratio
-            elif img.width > img.height:
-                if scale < 1.7:
-                    ratio = img.height/200
-                else:
-                    ratio = img.width/340
-                height = img.height/ratio
-                width = img.width/ratio
-            else:
-                ratio = img.height/200
-                height = img.height/ratio
-                width = img.width/ratio
-            output_size = (width, height)
-            img.thumbnail(output_size)
-            img.save(self.image.path)
-            
     
     @property
     def imageURL(self):
@@ -119,17 +103,6 @@ class CarouselSlider(models.Model):
 
     def __str__(self):
         return self.name
-    
-    def save(self, *args, **kwargs):
-        if self.image:
-            img = Image.open(self.image)
-            ratio = img.height/400
-            height = img.height/ratio
-            width = img.width/ratio
-            output_size = (width, height)
-            img.thumbnail(output_size)
-            img.save(self.image)
-            super(CarouselSlider, self).save(*args, **kwargs)
     
     @property
     def imageURL(self):

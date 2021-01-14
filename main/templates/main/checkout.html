@@ -1,24 +1,58 @@
 {% extends "main/base.html" %}
 {% load static %}
 {% block content %}
-    <div class="content-container mrl-5">
+    <div class="checkout-container content-container mrl-5">
         <div class="left-container">
+            <div class="checkout-page-container order-summary">
+                <h2>Order Summary</h2>
+                <table>
+                    {% for item in items %}
+                        <tr>
+                            <td>
+                                <div class="checkout-product-img">
+                                    <a href="#">
+                                        <img src="{{ item.product.imageURL }}" alt="">
+                                    </a>
+                                </div>
+                            </td>
+                            <td>{{ item.product.name }}</td>
+                            <td><span>RM </span><span>{{ item.product.price }}</span></td>
+                            <td><span>x</span><span>{{ item.quantity }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div class="order-summary-footer">
+                    <div class="order-summary-details">
+                        <h3>Total Items: <span style="font-weight: normal;">{{ order.get_cart_quantity }}</span></h3>
+                        <br>
+                        <h3>Total Amount: <span style="font-weight: normal;">RM <span>{{ order.get_cart_total|floatformat:2 }}</span></span></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="right-container">
             <div class="checkout-page-container shipping-info">
                 <form class="shipping-checkout" method="POST" action="">
                     {% csrf_token %}
                     <h2>Shipping Information</h2>
                     <div class="personal-info">
                         <h3>Personal Information</h3>
-                        <input required type="text" placeholder="Name" name="name">
-                        <input required type="email" placeholder="Email" name="email">
+                        <div class="personal-info-field">
+                            <input required type="text" placeholder="Name" name="name">
+                            <input required type="email" placeholder="Email" name="email">
+                        </div>
                     </div>
                     <div class="address-info">
                         <h3>Address</h3>
-                        <input required class="address" type="text" placeholder="Street Address 1" name="address1">
-                        <input class="address" type="text" placeholder="Street Address 2" name="address2">
-                        <input required class="input-width-30p" type="text" placeholder="City" name="city">
-                        <input required class="input-width-30p" type="text" placeholder="State" name="state">
-                        <input required class="input-width-30p" type="number" placeholder="Zip Code" name="zipcode">
+                        <div class="address-info-field">
+                            <input required class="address" type="text" placeholder="Street Address 1" name="address1">
+                            <input class="address" type="text" placeholder="Street Address 2" name="address2">
+                            <div class="address-second-part-info">
+                                <input required  type="text" placeholder="City" name="city">
+                                <input required  type="text" placeholder="State" name="state">
+                                <input required  type="number" placeholder="Zip Code" name="zipcode">
+                            </div>
+                        </div>
                     </div>
                     <div class="confirmation-btn">
                         <button id="green-btn" class="shipping-info-confirmation" type="submit">Continue</button>
@@ -31,34 +65,6 @@
                 <tr>
                     <td><button id="green-btn" class="pay-btn">Pay</button></td>
                 </tr>
-            </div>
-        </div>
-        <div class="checkout-page-container order-summary">
-            <h2>Order Summary</h2>
-            <table>
-                {% for item in items %}
-                    <tr>
-                        <td>
-                            <div class="checkout-product-img">
-                                <a href="#">
-                                    <img src="{{ item.product.imageURL }}" alt="">
-                                </a>
-                            </div>
-                        </td>
-                        <td>{{ item.product.name }}</td>
-                        <td><span>RM </span><span>{{ item.product.price }}</span></td>
-                        <td><span>x</span><span>{{ item.quantity }}</span></td>
-                    </tr>
-                {% endfor %}
-            </table>
-            <div class="order-summary-footer">
-                <div class="order-summary-details">
-                    <h3 class="inline">Total Items: </h3>
-                    <span>{{ order.get_cart_quantity }}</span>
-                    <br>
-                    <h3 class="inline">Total Amount: </h3>
-                    <span>RM </span><span>{{ order.get_cart_total|floatformat:2 }}</span>
-                </div>
             </div>
         </div>
     </div>

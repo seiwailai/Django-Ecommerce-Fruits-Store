@@ -1,23 +1,20 @@
 {% extends "main/base.html" %}
 {% load static %}
 {% block content %}
-    <div class="content-container mrl-5">
+    <div class="content-container mrl-5" style="overflow: auto;">
         <a href="{% url 'main-home' %}"><button id="green-btn"><i class="fas fa-chevron-left"></i> Continue Shopping</button></a>
         <table class="cart-table">
             <thead>
                 <tr>
-                    <th><input type="checkbox"></th>
                     <th>Product</th>
                     <th>Unit Price</th>
                     <th>Quantity</th>
                     <th>Total Price</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="cart-items-list">
                 {% for item in items %}
-                    <tr>
-                        <td><input type="checkbox"></td>
+                    <tr id="cartRowItem_{{ item.product.id }}">
                         <td>
                             <a href="#">
                                 <div class="cart-product-img">
@@ -26,20 +23,34 @@
                                 <span>{{ item.product.name }}</span>
                             </a>
                         </td>
-                        <td>RM {{ item.product.price|floatformat:2 }}</td>
-                        <td><input data-product="{{ item.product.id }}" data-action="update-item" class="update-item" value="{{ item.quantity }}" type="number" min="0"></td>
-                        <td>RM {{ item.get_total|floatformat:2 }}</td>
-                        <td>Delete</td>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                RM <span>{{ item.product.price|floatformat:2 }}</span>
+                            </div>
+                        </td>                            
+                        <td class="quantity-input">
+                            <div style="display: flex; align-items: center;">
+                                <button class="quantity-btn" type="button" data-action="reduce" data-product="{{ item.product.id }}">
+                                    <i class="fas fa-caret-square-down fa-2x"></i>
+                                </button>
+                                <input id="item_{{ item.product.id }}_quantity" data-product="{{ item.product.id }}" data-action="update-item" value="{{ item.quantity }}" type="number" min="0" readonly>
+                                <button class="quantity-btn" type="button" data-action="increment" data-product="{{ item.product.id }}">
+                                    <i class="fas fa-caret-square-up fa-2x"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td><div style="display: flex; align-items: center;">RM <span id="itemTotal_{{ item.product.id }}">{{ item.get_total|floatformat:2 }}</span></div></td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <div class="checkout-bar">
-            <div class="checkout-total-amount">
-                <h3 class="inline">Total Amount :</h3>
-                <span>RM </span><span id="cart-total" >{{ order.get_cart_total|floatformat:2 }}</span>
-            </div>
-            <a href="{% url 'main-checkout' %}"><button id="green-btn">Check Out</button></a>
-        </div>
     </div>
+    <div class="checkout-bar mrl-5">
+        <div class="checkout-total-amount">
+            <h3 class="inline">Total Amount :</h3>
+            <span>RM </span><span id="cart-total" >{{ order.get_cart_total|floatformat:2 }}</span>
+        </div>
+        <a href="{% url 'main-checkout' %}"><button id="green-btn">Check Out</button></a>
+    </div>
+
 {% endblock content %}

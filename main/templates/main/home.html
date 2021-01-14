@@ -1,156 +1,222 @@
 {% extends "main/base.html" %}
 {% load static %}
 {% block content %}
-    <div class="carousel-bg">
-        <button class="carousel-btn" id="previous-btn"><i class="fas fa-chevron-left"></i></button>
-        <div id="carousel-container">
-            <div class="carousel-slide"></div>
-        </div> 
-        <button class="carousel-btn inline" id="next-btn"><i class="fas fa-chevron-right"></i></button> 
+    <div class="container">
+        <div class="carousel-bg">
+            <button class="carousel-btn" id="previous-btn"><i class="fas fa-chevron-left"></i></button>
+            <div id="carousel-container">
+                <div class="carousel-slide">
+                {% if carousels %}
+                    {% with carousels.last as carousel %}
+                        <img id="lastClone" src={{ carousel.imageURL }} alt="">
+                    {% endwith %}
+                    {% for carousel in carousels %}
+                        <img src={{ carousel.imageURL }} alt="">
+                    {% endfor %}
+                    {% with carousels.first as carousel %}
+                        <img id="firstClone" src={{ carousel.imageURL }} alt="">
+                    {% endwith %}
+                {% endif %}
+                </div>
+            </div> 
+            <button class="carousel-btn inline" id="next-btn"><i class="fas fa-chevron-right"></i></button> 
+        </div>
     </div>
     <div class="content-container">
         <div class="filter-box">
             <div class="filter-first-box">
-                <h2 class="filter-title">Categories</h2>
-                <ul class="filter-list"></ul>
-            </div>
-            <div class="filter-remaining-box">
-                <form method="GET" action=".">
-                    <h2 class="filter-title">Price Range</h2>
-                    <div class="min-max-tag">
-                        <div class="min">Min</div>
-                        <div class="max">Max</div>
-                    </div>
-                    <input id="min" class="inline" type=number min="0" max="50" placeholder="0" name="min_price">
-                    <hr>
-                    <input id="max" class="inline" type=number min="0" max="50" placeholder="50" name="max_price">
-                    <button type="submit" class="filter-price-apply">Apply</button>
-                </form>
+                <h2 class="filter-title" style="font-size:large;">Categories</h2>
+                <ul class="filter-list">
+                    {% for category in categories %}
+                    <li>
+                        {% if category.category == view.kwargs.category %}
+                            <a href="{% url 'main-category' category %}" style="cursor:not-allowed;pointer-events:none;color: lightslategrey; font-size: medium;">
+                                {{ category.category }}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'main-category' category %}" style="font-size: medium;">
+                                {{ category.category }}
+                            </a>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
         <div class="main-content">
             <div class="sort-bar">
-                <h3>Sort by</h3>
-                <select class="sort-options-bar" name="sort_options" id="sortBy">
-                    <option selected value="price">Price: Low to High</option>
-                    <option value="-price">Price: High to Low</option>
-                    <option value="name">Alphabetically: A to Z</option>
-                    <option value="-name">Alphabetically: Z to A</option>
-                </select>
-                <form method="GET" action="." class="sort-bar-search-bar">
-                    <input class="search-txt inline" type="search" placeholder="Search for fruits here" name="search_text">
+                <div class="hamburger-nav">
+                    <div class="hamburger" data-target="hamburger-category-links">
+                        <div class="line"></div>
+                        <div class="line"></div>
+                        <div class="line"></div>
+                    </div>
+                    <ul id="hamburger-category-links" class="hamburger-nav-links fadeIn">
+                        {% for category in categories %}
+                        <li>
+                            {% if category.category == view.kwargs.category %}
+                                <a href="{% url 'main-category' category %}" style="cursor:not-allowed;pointer-events:none;color: lightslategrey; font-size: small;">
+                                    {{ category.category }}
+                                </a>
+                            {% else %}
+                                <a href="{% url 'main-category' category %}" style="font-size: small;">
+                                    {{ category.category }}
+                                </a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <form method="GET" id="sort-by-bar">
+                    <h3>Sort by</h3>
+                    <select class="sort-options-bar" name="ordering" id="sortBy" onchange="this.form.submit()";>
+                        {% for value, name in orderings.items %}
+                            {% if request.GET.ordering %}
+                                {% if value == request.GET.ordering %}
+                                    <option selected value={{ value }}>{{ name }}</option>
+                                {% else %}
+                                    <option value={{ value }}>{{ name }}</option>
+                                {% endif %}
+                            {% else %}
+                                {% if value == 'price' %}
+                                    <option selected value={{ value }}>{{ name }}</option>
+                                {% else %}
+                                    <option value={{ value }}>{{ name }}</option>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+<!--                         
+                        <option value="-price">Price: High to Low</option>
+                        <option value="name">Alphabetically: A to Z</option>
+                        <option value="-name">Alphabetically: Z to A</option> -->
+                    </select>
+                </form>
+                <form method="GET" action="" class="sort-bar-search-bar">
+                    <input style="font-size: small;" class="search-txt inline" type="search" placeholder="Search" name="q">
                     <button type="submit" class="search-btn inline"><i class="fas fa-search"></i></button>  
                 </form>
             </div>
-            <div class="products-grid-container" id="products-grid"></div>
+            <div class="products-grid-container" id="products-grid">
+                {% for product in products %}
+                    <div class="product-box">
+                        <a href="#product-details">
+                            <img src={{ product.imageURL }} alt="">
+                            <h2 class="product-name">{{ product.name }}</h2>
+                            <p class="product-description">{{ product.description }}</p>
+                            <h2 class="price">RM <span>{{ product.price }}</span></h2>
+                        </a>
+                        <button data-product={{ product.id }} id="green-btn" class="add-cart">Add to cart</button>
+                    </div>
+                {% endfor %}
+            </div>
             <div class="pagination"></div>
         </div>
     </div>
     <script type="text/javascript">
-        function getContext(){
-            return JSON.parse("{{ context|escapejs|safe }}")
-        }
-        const context = getContext()
-        console.log(context)
-        const carouselSlide = document.querySelector('.carousel-slide');
-        const carousels = context.carousels
-        console.log(carousels)
-        carouselSlide.innerHTML += `<img id="lastClone" src=${carousels[carousels.length-1].imageURL} alt="">`
-        for (i=0; i<carousels.length; i++){
-            carouselSlide.innerHTML += `<img src=${carousels[i].imageURL} alt="">`
-        }
-        carouselSlide.innerHTML += `<img id="firstClone" src=${carousels[0].imageURL} alt="">`
+        // function getContext(){
+        //     return JSON.parse("{{ context|escapejs|safe }}")
+        // }
+        // const context = getContext()
+        // console.log(context)
+        // const carouselSlide = document.querySelector('.carousel-slide');
+        // const carousels = context.carousels
+        // console.log(carousels)
+        // carouselSlide.innerHTML += `<img id="lastClone" src=${carousels[carousels.length-1].imageURL} alt="">`
+        // for (i=0; i<carousels.length; i++){
+        //     carouselSlide.innerHTML += `<img src=${carousels[i].imageURL} alt="">`
+        // }
+        // carouselSlide.innerHTML += `<img id="firstClone" src=${carousels[0].imageURL} alt="">`
 
-        let cartItems = context.cartItems
-        document.querySelector('.cart-number').innerHTML = cartItems
+        // let cartItems = context.cartItems
+        // document.querySelector('.cart-number').innerHTML = cartItems
 
-        const products = context.products.object_list
-        const productsGrid = document.getElementById('products-grid')
-        for (i=0; i<products.length; i++){
-            const productCodeBlock = '<div class="product-box">' +
-                                    '<a href="#product-details">' +
-                                        `<img src=${products[i].imageURL} alt="">` +
-                                        `<h2 class="product-name">${products[i].name}</h2>` +
-                                        `<p class="product-description">${products[i].description}</p>` +
-                                        `<h2 class="price">RM <span>${products[i].price}</span></h2>` +
-                                    '</a>' +
-                                    `<button data-product=${products[i].id} data-action="add" id="green-btn" class="update-cart">Add to cart</button>` +
-                                '</div>'
-            productsGrid.innerHTML += productCodeBlock
-        }
+        // const products = context.products.object_list
+        // const productsGrid = document.getElementById('products-grid')
+        // for (i=0; i<products.length; i++){
+        //     const productCodeBlock = '<div class="product-box">' +
+        //                             '<a href="#product-details">' +
+        //                                 `<img src=${products[i].imageURL} alt="">` +
+        //                                 `<h2 class="product-name">${products[i].name}</h2>` +
+        //                                 `<p class="product-description">${products[i].description}</p>` +
+        //                                 `<h2 class="price">RM <span>${products[i].price}</span></h2>` +
+        //                             '</a>' +
+        //                             `<button data-product=${products[i].id} data-action="add" id="green-btn" class="update-cart">Add to cart</button>` +
+        //                         '</div>'
+        //     productsGrid.innerHTML += productCodeBlock
+        // }
 
-        const categories = context.categories
-        const categoryList = document.querySelector('.filter-list')
-        for (i=0; i<categories.length; i++){
-            console.log(categories[i].category)
-            categoryList.innerHTML += `<li>
-                                    <a href="categories/${categories[i].category}">
-                                        ${categories[i].category}
-                                    </a>
-                                </li>
-                `
-        }
+        // const categories = context.categories
+        // const categoryList = document.querySelector('.filter-list')
+        // for (i=0; i<categories.length; i++){
+        //     console.log(categories[i].category)
+        //     categoryList.innerHTML += `<li>
+        //                             <a href="categories/${categories[i].category}">
+        //                                 ${categories[i].category}
+        //                             </a>
+        //                         </li>
+        //         `
+        // }
 
-        const pagination = document.querySelector('.pagination')
-        const pageObj = context.page_obj
+        // const pagination = document.querySelector('.pagination')
+        // const pageObj = context.page_obj
 
-        if (context.is_paginated){
-            if (pageObj.has_previous){
-                pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=1">First</a>
-                                <a class="btn btn-outline-info mb-4" href="?page=${pageObj.previous_page_number}">Previous</a>`
-            }
-            for (i=0; i<pageObj.paginator.page_range.length; i++){
-                if (pageObj.number == pageObj.paginator.page_range[i]){
-                    pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.page_range[i]}">${pageObj.paginator.page_range[i]}</a>`
-                }
-                else if (pageObj.paginator.page_range[i] > pageObj.number - 3 && pageObj.paginator.page_range[i] < pageObj.number + 3){
-                    pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.page_range[i]}">${pageObj.paginator.page_range[i]}</a>`
-                }
-            }
-            if (pageObj.has_next){
-                pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.next_page_number}">Next</a>
-                    <a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.num_pages}">Last</a>`
-            }
-        }
+        // if (context.is_paginated){
+        //     if (pageObj.has_previous){
+        //         pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+        //                         <a class="btn btn-outline-info mb-4" href="?page=${pageObj.previous_page_number}">Previous</a>`
+        //     }
+        //     for (i=0; i<pageObj.paginator.page_range.length; i++){
+        //         if (pageObj.number == pageObj.paginator.page_range[i]){
+        //             pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.page_range[i]}">${pageObj.paginator.page_range[i]}</a>`
+        //         }
+        //         else if (pageObj.paginator.page_range[i] > pageObj.number - 3 && pageObj.paginator.page_range[i] < pageObj.number + 3){
+        //             pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.page_range[i]}">${pageObj.paginator.page_range[i]}</a>`
+        //         }
+        //     }
+        //     if (pageObj.has_next){
+        //         pagination.innerHTML += `<a class="btn btn-outline-info mb-4" href="?page=${pageObj.next_page_number}">Next</a>
+        //             <a class="btn btn-outline-info mb-4" href="?page=${pageObj.paginator.num_pages}">Last</a>`
+        //     }
+        // }
 
-        const sortBy = document.getElementById('sortBy')
-        sortBy.addEventListener('change', changeOrdering)
+        // const sortBy = document.getElementById('sortBy')
+        // sortBy.addEventListener('change', changeOrdering)
         
 
-        function changeOrdering(){
-            orderingValue = this.options[this.selectedIndex].value
-            selectCodeBlock = ''
-            for (i=0; i<this.options.length; i++){
-                if (i==this.selectedIndex){
-                    optionCodeBlock = `<option selected value=${this.options[i].value}>${this.options[i].innerHTML}</option>`
-                }
-                else {
-                    optionCodeBlock = `<option value=${this.options[i].value}>${this.options[i].innerHTML}</option>`
-                }
-                selectCodeBlock += optionCodeBlock
-            }
-            sortBy.innerHTML = selectCodeBlock
+        // function changeOrdering(){
+        //     orderingValue = this.options[this.selectedIndex].value
+        //     selectCodeBlock = ''
+        //     for (i=0; i<this.options.length; i++){
+        //         if (i==this.selectedIndex){
+        //             optionCodeBlock = `<option selected value=${this.options[i].value}>${this.options[i].innerHTML}</option>`
+        //         }
+        //         else {
+        //             optionCodeBlock = `<option value=${this.options[i].value}>${this.options[i].innerHTML}</option>`
+        //         }
+        //         selectCodeBlock += optionCodeBlock
+        //     }
+        //     sortBy.innerHTML = selectCodeBlock
 
-            const url = ''
+        //     const url = ''
 
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                },
-                body: JSON.stringify({
-                    'ordering': orderingValue
-                })
-            })
+        //     fetch(url, {
+        //         method: 'GET',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': csrftoken,
+        //         },
+        //         body: JSON.stringify({
+        //             'ordering': orderingValue
+        //         })
+        //     })
 
-            .then((response) => {
-                return response.json()
-            })
+        //     .then((response) => {
+        //         return response.json()
+        //     })
 
-            .then((data) =>{
-                console.log('data:', data)
-            })
-        }
+        //     .then((data) =>{
+        //         console.log('data:', data)
+        //     })
+        // }
     </script>
 {% endblock content %}
