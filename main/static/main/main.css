@@ -450,7 +450,6 @@ ul li:hover a{
     width: 100%;
     min-width: 75%;
     border-radius: 10px 10px 0 0;
-    overflow: hidden;
 }
 
 .cart-table thead tr{
@@ -497,14 +496,6 @@ ul li:hover a{
     margin-left: 1rem;
     color: black;
     width: 5rem;
-}
-
-.cart-table tbody tr td:nth-of-type(2) {
-    transition: all 0.3s;
-}
-
-.cart-table tbody tr td:nth-of-type(2):hover {
-    transform: scale(1.1);
 }
 
 .checkout-bar {
@@ -661,7 +652,7 @@ input[type=number] {
     width: 100%;
     min-width: 75%;
     border-radius: 10px 10px 0 0;
-    overflow: auto;
+    overflow: hidden;
 }
 
 .order-summary-footer {
