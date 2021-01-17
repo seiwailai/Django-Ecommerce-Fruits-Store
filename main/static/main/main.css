@@ -248,8 +248,9 @@ ul li:hover a{
 
 .carousel-slide img{
     position: relative;
-    max-width: 80%;
+    width: 80%;
     height: auto;
+    scale: 1.5;
 }
 
 .carousel-btn {
