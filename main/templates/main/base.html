@@ -26,8 +26,6 @@
         }
         const csrftoken = getToken('csrftoken');
 
-        console.log(csrftoken)
-
         function getCookie(name){
             const cookieArr = document.cookie.split(";");
 
@@ -295,6 +293,7 @@
     {% endif %}
 </head>
 <body>
+    {% csrf_token %}
     <header class="navbar">
         <a class="logo" href="{% url 'main-home' %}">Fruit Store</a>
         <form method="GET" action="{% url 'main-home' %}" class="search-bar inline">
