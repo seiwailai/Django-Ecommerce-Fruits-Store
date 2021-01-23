@@ -39,8 +39,6 @@ def getCookieItem(request, productID):
             product = Product.objects.get(id=i)
             cartTotal += cart[i]['quantity'] * product.price
             cartItems += cart[i]['quantity']
-            print(cart[i]['quantity'])
-        print(cartTotal)
         return {'itemQuantity': itemQuantity, 'itemTotal': itemTotal, 'cartTotal': cartTotal, 'cartItems': cartItems}
     except:
         cart = {}

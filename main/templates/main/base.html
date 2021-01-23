@@ -101,17 +101,15 @@
         }
 
         function updateCartList(productID, itemQuantity, data){
-            const cartItems = JSON.parse(data.cartItems)
-            document.querySelector('.cart-number').innerHTML = cartItems
+            const cartTotal = (Math.round(JSON.parse(data.cartTotal) * 100) / 100).toFixed(2)
+            document.getElementById(`cart-total`).innerHTML = cartTotal
             if (itemQuantity <= 0){
                 document.getElementById(`cartRowItem_${productID}`).remove()
             }
             else {
                 const itemTotal = (Math.round(JSON.parse(data.itemTotal) * 100) / 100).toFixed(2)
-                const cartTotal = (Math.round(JSON.parse(data.cartTotal) * 100) / 100).toFixed(2)
                 document.getElementById(`itemTotal_${productID}`).innerHTML = itemTotal
                 document.getElementById(`item_${productID}_quantity`).value = itemQuantity
-                document.getElementById(`cart-total`).innerHTML = cartTotal
             }
         }
 
